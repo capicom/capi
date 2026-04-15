@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Capi Bot - Clon Dinámico</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Mantenemos el estilo visual del index.html que subiste */
+        :root { --bg: #0b0e14; --panel: #161b22; --accent: #58a6ff; --text: #c9d1d9; --border: #30363d; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background: var(--panel); padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .main-content { display: grid; grid-template-columns: 1fr 400px; flex: 1; overflow: hidden; }
+        .table-container { overflow-y: auto; padding: 10px; border-right: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #0d1117; color: var(--accent); position: sticky; top: 0; padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        td { padding: 8px; border-bottom: 1px solid var(--border); }
+        .side-panel { background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .chart-box { background: #0d1117; border-radius: 6px; height: 250px; padding: 10px; border: 1px solid var(--border); }
+        .leg-row { background: #21262d; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 12px; display: flex; justify-content: space-between; }
+        .btn-add { background: #238636; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="font-weight: bold;">CAPI BOT | <span id="ticker">GGAL</span></div>
+    <div>
+        <input type="file" id="csvInput" accept=".csv" style="font-size: 11px;">
+    </div>
+    <div id="market-summary" style="font-size: 12px; font-family: monospace;">
+        SPOT: -- | TNA: -- | DÍAS: --
+    </div>
+</header>
+
+<div class="main-content">
+    <div class="table-container">
+        <div style="margin-bottom: 10px;">
+            <select id="opexSel" onchange="renderView()" style="background:#0d1117; color:white; border:1px solid var(--border); padding:5px;"></select>
+        </div>
+        <table id="marketTable">
+            <thead>
+                <tr>
+                    <th>Símbolo</th><th>Strike</th><th>Último</th><th>VI%</th><th>Delta</th><th>Gamma</th><th>Acción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="side-panel">
+        <div class="chart-box">
+            <canvas id="strategyChart"></canvas>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: var(--accent);">ESTRATEGIA ARMADA</h4>
+            <div id="activeLegs"></div>
+        </div>
+        <div id="totals" style="border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px;">
+            Delta Neto: <span id="netDelta">0.00</span>
+        </div>
+    </div>
+</div>
+
+<script>
+let mktData = { spot: 0, t: 0, r: 0, options: [] };
+let selectedLegs = [];
+
+document.getElementById('csvInput').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const rows = reader.result.split('\n').map(r => r.split(','));
+        
+        // Mapeo exacto basado en tu CSV
+        mktData.spot = parseFloat(rows[2][7].replace(/"/g, '').replace('.', '').replace(',', '.'));
+        mktData.days = parseInt(rows[10][22]);
+        mktData.t = parseFloat(rows[11][22].replace(/"/g, '').replace(',', '.'));
+        mktData.r = parseFloat(rows[12][22].replace(/"/g, '').replace(',', '.').replace('%','')) / 100;
+
+        document.getElementById('market-summary').innerText = 
+            `SPOT: $${mktData.spot} | TNA: ${(mktData.r*100).toFixed(1)}% | Vto: ${mktData.days}d`;
+
+        mktData.options = rows.filter(r => r[0] && (r[0].startsWith('GFGC') || r[0].startsWith('GFGV')))
+            .map(r => ({
+                sym: r[0],
+                k: parseFloat(r[9]?.replace(/"/g, '').replace(',', '.')),
+                last: parseFloat(r[7]?.replace(/"/g, '').replace(',', '.')),
+                vi: parseFloat(r[10]?.replace(/"/g, '').replace(',', '.').replace('%','')) / 100 || 0.7,
+                type: r[0].includes('C') ? 'call' : 'put'
+            }));
+
+        populateOpex();
+        renderView();
+    };
+    reader.readAsText(e.target.files[0]);
+});
+
+function populateOpex() {
+    const codes = [...new Set(mktData.options.map(o => o.sym.slice(-1)))];
+    document.getElementById('opexSel').innerHTML = codes.map(c => 
+        `<option value="${c}">Opex ${c === 'A' ? 'Abril' : 'Junio'} (${c})</option>`).join('');
+}
+
+// Lógica de Black-Scholes para clonar las griegas del index original
+function cnd(x) {
+    const a = [0.31938153, -0.356563782, 1.781477937, -1.821255978, 1.330274429];
+    const L = Math.abs(x), K = 1.0 / (1.0 + 0.2316419 * L);
+    let d = 1.0 - 1.0 / Math.sqrt(2 * Math.PI) * Math.exp(-L * L / 2) * (a[0]*K + a[1]*K*K + a[2]*Math.pow(K,3) + a[3]*Math.pow(K,4) + a[4]*Math.pow(K,5));
+    return x >= 0 ? d : 1.0 - d;
+}
+
+function getGreeks(S, K, T, r, v, type) {
+    if (T <= 0) return { d: 0, g: 0 };
+    const d1 = (Math.log(S/K) + (r + v*v/2)*T) / (v*Math.sqrt(T));
+    const delta = type === 'call' ? cnd(d1) : cnd(d1) - 1;
+    const gamma = Math.exp(-d1*d1/2) / (S * v * Math.sqrt(2 * Math.PI * T));
+    return { d: delta, g: gamma };
+}
+
+function renderView() {
+    const filter = document.getElementById('opexSel').value;
+    const tbody = document.querySelector('#marketTable tbody');
+    tbody.innerHTML = mktData.options.filter(o => o.sym.endsWith(filter)).map(o => {
+        const g = getGreeks(mktData.spot, o.k, mktData.t, mktData.r, o.vi, o.type);
+        return `<tr>
+            <td>${o.sym}</td><td>${o.k}</td><td>$${o.last}</td><td>${(o.vi*100).toFixed(1)}%</td>
+            <td style="color:${g.d > 0 ? '#3fb950':'#f85149'}">${g.d.toFixed(2)}</td>
+            <td>${g.g.toFixed(5)}</td>
+            <td><button class="btn-add" onclick="addLeg('${o.sym}',${o.k},${o.last},'${o.type}',${o.vi})">Simular</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function addLeg(sym, k, p, type, vi) {
+    selectedLegs.push({ sym, k, p, type, vi, qty: 1 });
+    updateStrategyUI();
+}
+
+function updateStrategyUI() {
+    const list = document.getElementById('activeLegs');
+    let netDelta = 0;
+    list.innerHTML = selectedLegs.map((l, i) => {
+        const g = getGreeks(mktData.spot, l.k, mktData.t, mktData.r, l.vi, l.type);
+        netDelta += g.d * l.qty;
+        return `<div class="leg-row">
+            <span>${l.sym}</span>
+            <input type="number" value="${l.qty}" style="width:40px; background:#0d1117; color:white; border:1px solid #333;" 
+                onchange="selectedLegs[${i}].qty=this.value; updateStrategyUI();">
+            <button onclick="selectedLegs.splice(${i},1); updateStrategyUI();" style="background:none; border:none; color:red; cursor:pointer;">✕</button>
+        </div>`;
+    }).join('');
+    document.getElementById('netDelta').innerText = netDelta.toFixed(2);
+    drawChart();
+}
+
+function drawChart() {
+    const ctx = document.getElementById('strategyChart').getContext('2d');
+    const x = [], y = [];
+    for (let s = mktData.spot * 0.8; s <= mktData.spot * 1.2; s += 20) {
+        x.push(s.toFixed(0));
+        let pnl = 0;
+        selectedLegs.forEach(l => {
+            const intrinsic = l.type === 'call' ? Math.max(0, s - l.k) : Math.max(0, l.k - s);
+            pnl += (intrinsic - l.p) * l.qty * 100;
+        });
+        y.push(pnl);
+    }
+    if(window.myChart) window.myChart.destroy();
+    window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: x, datasets: [{ label: 'P&L', data: y, borderColor: '#58a6ff', tension: 0.2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+</script>
+</body>
+</html>
