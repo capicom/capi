@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Opciones GGAL</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #070b0f;
+  --bg2:    #0d1117;
+  --bg3:    #131a22;
+  --bg4:    #1a2332;
+  --border: #1e2d3d;
+  --bord2:  #243447;
+  --text:   #e2e8f0;
+  --muted:  #4a6080;
+  --muted2: #64748b;
+  --accent: #00d4ff;
+  --green:  #00ff88;
+  --red:    #ff4466;
+  --amber:  #ffaa00;
+  --purple: #a855f7;
+  --cyan:   #4affff;
+  --mono:   'JetBrains Mono', monospace;
+  --head:   'Syne', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(7,11,15,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);padding:0 20px;}
+.hdr{max-width:1440px;margin:0 auto;height:54px;display:flex;align-items:center;gap:16px;}
+.logo-mark{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;font-size:13px;color:#000;}
+.logo-text{font-family:var(--head);font-weight:800;font-size:15px;letter-spacing:-.5px;}
+.logo-text span{color:var(--accent);}
+.hdr-spot{margin-left:auto;display:flex;align-items:center;gap:20px;}
+.spot-num{font-size:24px;font-weight:700;color:var(--accent);font-family:var(--head);letter-spacing:-1px;}
+.spot-var{font-size:11px;font-weight:700;}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3);border-radius:4px;padding:4px 9px;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--green);}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* MAIN GRID */
+.main{max-width:1440px;margin:0 auto;padding:16px 20px 60px;position:relative;z-index:1;display:grid;grid-template-columns:320px 1fr;gap:14px;}
+@media(max-width:860px){.main{grid-template-columns:1fr;}}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ph{background:var(--bg3);border-bottom:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:8px;}
+.pt{font-family:var(--head);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);}
+.pt.ac{color:var(--accent);}
+.pb{padding:14px;}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:10px;}
+.fl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+select,input[type=number]{width:100%;background:var(--bg3);border:1px solid var(--bord2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 11px;outline:none;transition:border-color .12s,box-shadow .12s;appearance:none;}
+select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
+select option{background:var(--bg3);}
+
+/* TIPO TOGGLE */
+.ttog{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.tbtn{padding:9px;text-align:center;border-radius:6px;border:1px solid var(--bord2);cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.8px;transition:all .12s;background:var(--bg3);color:var(--muted2);}
+.tbtn.call.on{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green);}
+.tbtn.put.on{background:rgba(255,68,102,.12);border-color:var(--red);color:var(--red);}
+
+/* FILL BUTTONS */
+.fbts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:4px;}
+.fbt{padding:5px;text-align:center;font-size:10px;font-weight:700;border-radius:4px;border:1px solid var(--bord2);cursor:pointer;font-family:var(--mono);color:var(--muted2);background:var(--bg3);transition:all .1s;letter-spacing:.5px;}
+.fbt:hover,.fbt.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.07);}
+
+/* CALC BTN */
+.cbtn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--purple));border:none;border-radius:8px;cursor:pointer;font-family:var(--head);font-weight:800;font-size:13px;letter-spacing:1px;color:#000;transition:all .15s;text-transform:uppercase;margin-top:2px;}
+.cbtn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,255,.3);}
+.cbtn:active{transform:none;}
+
+/* RESULTADO */
+.rp{text-align:center;padding:18px 14px;border-bottom:1px solid var(--border);}
+.rl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.rv{font-size:38px;font-weight:800;letter-spacing:-2px;font-family:var(--head);}
+.rv.call{color:var(--green);}
+.rv.put{color:var(--red);}
+.rrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);}
+.rbox{background:var(--bg2);padding:10px 8px;text-align:center;}
+.rbox-l{font-size:9px;color:var(--muted);letter-spacing:.8px;margin-bottom:3px;}
+.rbox-v{font-size:13px;font-weight:700;}
+
+/* GREEKS */
+.gg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);}
+.gb{background:var(--bg2);padding:13px 10px;text-align:center;transition:background .12s;cursor:default;}
+.gb:hover{background:var(--bg3);}
+.gn{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.gs{font-size:15px;color:var(--muted2);margin:2px 0;}
+.gv{font-size:17px;font-weight:700;font-family:var(--head);letter-spacing:-.5px;}
+.gd{font-size:9px;color:var(--muted);margin-top:2px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 14px;gap:0;overflow-x:auto;}
+.tab{padding:9px 14px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px;color:var(--muted);border-bottom:2px solid transparent;transition:all .1s;white-space:nowrap;font-family:var(--head);}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.on){color:var(--text);}
+.tc{display:none;}
+.tc.on{display:block;}
+
+/* TABLE */
+.twrap{overflow-x:auto;max-height:400px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;}
+th{padding:7px 9px;text-align:right;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;}
+th:first-child{text-align:left;}
+td{padding:6px 9px;text-align:right;font-size:12px;border-bottom:1px solid rgba(30,45,61,.4);white-space:nowrap;}
+td:first-child{text-align:left;}
+tr:hover td{background:rgba(0,212,255,.035);cursor:pointer;}
+tr.atm td{background:rgba(255,170,0,.06);}
+tr.atm:hover td{background:rgba(255,170,0,.1);}
+.tc-call{color:var(--green);font-weight:600;}
+.tc-put{color:var(--red);font-weight:600;}
+.tc-str{color:var(--amber);font-weight:700;text-align:center;}
+.tc-vi{color:var(--purple);font-size:11px;}
+.tc-ve{color:var(--muted2);font-size:11px;}
+.tc-vol{color:var(--muted2);font-size:10px;}
+.atm-tag{font-size:8px;font-weight:800;letter-spacing:.8px;background:var(--amber);color:#000;border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
+
+/* STAT BOXES */
+.sboxes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:8px;overflow:hidden;margin:14px;}
+.sbox{background:var(--bg2);padding:12px 10px;text-align:center;}
+.sbl{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px;}
+.sbv{font-size:14px;font-weight:700;}
+
+/* SENSI */
+.sensi-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:8px;overflow:hidden;margin:14px;}
+.sbox2{background:var(--bg2);padding:13px;}
+.st2{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(30,45,61,.4);font-size:12px;}
+.sr:last-child{border-bottom:none;}
+.sk{color:var(--muted2);}
+
+/* MKT GRID */
+.mktg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:8px;overflow:hidden;margin:14px;}
+.mbox{background:var(--bg2);padding:12px 10px;text-align:center;}
+.ml{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px;}
+.mv{font-size:14px;font-weight:700;}
+.ms{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* STATUS */
+.statusbar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(7,11,15,.96);border-top:1px solid var(--border);backdrop-filter:blur(20px);padding:5px 20px;display:flex;align-items:center;gap:14px;font-size:10px;color:var(--muted);}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--green);}
+.sdot.err{background:var(--red);}
+
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.llogo{font-family:var(--head);font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.lbar{width:180px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));animation:lb 1.3s ease infinite;}
+@keyframes lb{0%{width:0;margin-left:0}50%{width:55%;margin-left:22%}100%{width:0;margin-left:100%}}
+.ltxt{font-size:11px;color:var(--muted);letter-spacing:1px;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="llogo">OPTIONS CALC</div>
+  <div class="lbar"><div class="lfill"></div></div>
+  <div class="ltxt" id="loader-txt">Conectando con el mercado...</div>
+</div>
+
+<header>
+  <div class="hdr">
+    <div class="logo-mark">Ω</div>
+    <div>
+      <div class="logo-text">OPTIONS <span>CALC</span></div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:1px;">GGAL · BYMA</div>
+    </div>
+    <div class="hdr-spot">
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;">GGAL</div>
+        <div class="spot-num" id="h-spot">—</div>
+      </div>
+      <div>
+        <div class="spot-var" id="h-var">—</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;" id="h-time">—</div>
+      </div>
+      <div class="live-pill"><div class="live-dot"></div>EN VIVO</div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+<!-- ═══ IZQUIERDA ═══ -->
+<div style="display:flex;flex-direction:column;gap:14px;">
+
+  <!-- PARÁMETROS -->
+  <div class="panel">
+    <div class="ph"><div class="pt ac">⚙ Parámetros</div></div>
+    <div class="pb">
+      <div class="fg">
+
+        <div>
+          <div class="fl">Tipo de opción</div>
+          <div class="ttog">
+            <div class="tbtn call on" id="btn-c" onclick="setTipo('C')">▲ CALL</div>
+            <div class="tbtn put"    id="btn-p" onclick="setTipo('P')">▼ PUT</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="fl">Strike</div>
+          <select id="sel-k" onchange="onStrikeChange()"><option>Cargando...</option></select>
+        </div>
+
+        <div>
+          <div class="fl">Precio entrada</div>
+          <input type="number" id="inp-p" placeholder="0.000" step="0.001" oninput="onPrecioChange()">
+          <div class="fbts">
+            <div class="fbt" id="fb-bid"  onclick="fillP('bid')">BID</div>
+            <div class="fbt on" id="fb-last" onclick="fillP('last')">LAST</div>
+            <div class="fbt" id="fb-ask"  onclick="fillP('ask')">OFFER</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div class="fl">Spot (S)</div>
+            <input type="number" id="inp-s" step="1" oninput="calcular()">
+          </div>
+          <div>
+            <div class="fl">VI % (σ)</div>
+            <input type="number" id="inp-vi" step="0.1" oninput="calcular()">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div class="fl">Días al vto</div>
+            <input type="number" id="inp-d" step="1" oninput="calcular()">
+          </div>
+          <div>
+            <div class="fl">TLR %</div>
+            <input type="number" id="inp-r" step="0.1" oninput="calcular()">
+          </div>
+        </div>
+
+        <button class="cbtn" onclick="calcular()">CALCULAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRECIO TEÓRICO -->
+  <div class="panel">
+    <div class="rp">
+      <div class="rl">Precio Teórico Black-Scholes</div>
+      <div class="rv call" id="r-teo">—</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--muted);" id="r-vi-impl">VI implícita del last: —</div>
+    </div>
+    <div class="rrow">
+      <div class="rbox">
+        <div class="rbox-l">Mercado BID</div>
+        <div class="rbox-v" style="color:var(--green);" id="r-bid">—</div>
+      </div>
+      <div class="rbox">
+        <div class="rbox-l">LAST</div>
+        <div class="rbox-v" id="r-last">—</div>
+      </div>
+      <div class="rbox">
+        <div class="rbox-l">OFFER</div>
+        <div class="rbox-v" style="color:var(--red);" id="r-ask">—</div>
+      </div>
+    </div>
+    <div class="rrow" style="border-top:1px solid var(--border);">
+      <div class="rbox">
+        <div class="rbox-l">Val. Intrínseco</div>
+        <div class="rbox-v" style="color:var(--accent);" id="r-vint">—</div>
+      </div>
+      <div class="rbox">
+        <div class="rbox-l">Val. Extrínseco</div>
+        <div class="rbox-v" style="color:var(--purple);" id="r-vext">—</div>
+      </div>
+      <div class="rbox">
+        <div class="rbox-l">Moneyness</div>
+        <div class="rbox-v" style="color:var(--amber);" id="r-money">—</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /izquierda -->
+
+<!-- ═══ DERECHA ═══ -->
+<div style="display:flex;flex-direction:column;gap:14px;">
+
+  <!-- GRIEGAS -->
+  <div class="panel">
+    <div class="ph"><div class="pt ac">∂ Griegas Black-Scholes</div></div>
+    <div class="gg">
+      <div class="gb">
+        <div class="gn">Delta</div><div class="gs">Δ</div>
+        <div class="gv" style="color:var(--accent);" id="g-d">—</div>
+        <div class="gd">ΔPrecio / ΔSpot</div>
+      </div>
+      <div class="gb">
+        <div class="gn">Gamma</div><div class="gs">Γ</div>
+        <div class="gv" style="color:var(--purple);" id="g-g">—</div>
+        <div class="gd">ΔDelta / ΔSpot</div>
+      </div>
+      <div class="gb">
+        <div class="gn">Theta</div><div class="gs">Θ</div>
+        <div class="gv" id="g-t" style="color:var(--amber);">—</div>
+        <div class="gd">Decaimiento / día</div>
+      </div>
+      <div class="gb">
+        <div class="gn">Vega</div><div class="gs">ν</div>
+        <div class="gv" style="color:var(--cyan);" id="g-v">—</div>
+        <div class="gd">Sensib. volatilidad</div>
+      </div>
+      <div class="gb">
+        <div class="gn">Rho</div><div class="gs">ρ</div>
+        <div class="gv" style="color:#ff8c42;" id="g-r">—</div>
+        <div class="gd">Sensib. tasa</div>
+      </div>
+      <div class="gb">
+        <div class="gn">Vanna</div><div class="gs">∂²</div>
+        <div class="gv" style="color:#c084fc;" id="g-va">—</div>
+        <div class="gd">dDelta / dVol</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="panel" style="flex:1;">
+    <div class="tabs">
+      <div class="tab on"  onclick="showTab('plaza',this)">Plaza</div>
+      <div class="tab"     onclick="showTab('payoff',this)">Payoff</div>
+      <div class="tab"     onclick="showTab('sensi',this)">Sensibilidad</div>
+      <div class="tab"     onclick="showTab('mkt',this)">Mercado</div>
+      <div class="tab"     onclick="showTab('smile',this)">Smile VI</div>
+    </div>
+
+    <!-- PLAZA -->
+    <div id="tc-plaza" class="tc on">
+      <div class="twrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left">Strike</th>
+              <th style="color:var(--green)">Bid C</th>
+              <th style="color:var(--green)">Last C</th>
+              <th style="color:var(--green)">Ask C</th>
+              <th style="color:var(--purple)">VI C</th>
+              <th style="color:var(--muted2)">VE C</th>
+              <th>Vol C</th>
+              <th style="color:var(--red)">Bid P</th>
+              <th style="color:var(--red)">Last P</th>
+              <th style="color:var(--red)">Ask P</th>
+              <th style="color:var(--purple)">VI P</th>
+              <th style="color:var(--muted2)">VE P</th>
+              <th>Vol P</th>
+            </tr>
+          </thead>
+          <tbody id="plaza-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYOFF -->
+    <div id="tc-payoff" class="tc">
+      <div style="padding:14px;">
+        <canvas id="cv-payoff" height="240"></canvas>
+      </div>
+      <div class="sboxes">
+        <div class="sbox"><div class="sbl">Break-Even</div><div class="sbv" style="color:var(--accent);" id="p-be">—</div></div>
+        <div class="sbox"><div class="sbl">Ganancia Máx</div><div class="sbv" style="color:var(--green);" id="p-mg">—</div></div>
+        <div class="sbox"><div class="sbl">Pérdida Máx</div><div class="sbv" style="color:var(--red);" id="p-ml">—</div></div>
+        <div class="sbox"><div class="sbl">Ratio R/R</div><div class="sbv" style="color:var(--amber);" id="p-rr">—</div></div>
+      </div>
+    </div>
+
+    <!-- SENSIBILIDAD -->
+    <div id="tc-sensi" class="tc">
+      <div class="sensi-wrap">
+        <div class="sbox2">
+          <div class="st2">Variación del Spot</div>
+          <div id="sensi-spot"></div>
+        </div>
+        <div class="sbox2">
+          <div class="st2">Variación de la Volatilidad</div>
+          <div id="sensi-vi"></div>
+        </div>
+      </div>
+      <div style="padding:0 14px 14px;">
+        <div style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">MATRIZ SPOT × TIEMPO (precio teórico BS)</div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left">Spot / Días</th>
+                <th>1d</th><th>2d</th><th>3d</th><th>5d</th><th>7d</th><th>10d</th>
+              </tr>
+            </thead>
+            <tbody id="sensi-mat"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MERCADO -->
+    <div id="tc-mkt" class="tc">
+      <div style="padding:10px 14px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">GGAL — Datos del día</div>
+      <div class="mktg" style="margin-top:0;">
+        <div class="mbox"><div class="ml">Last</div><div class="mv" style="color:var(--accent);" id="m-last">—</div></div>
+        <div class="mbox"><div class="ml">Variación</div><div class="mv" id="m-var">—</div></div>
+        <div class="mbox"><div class="ml">Open</div><div class="mv" id="m-open">—</div></div>
+        <div class="mbox"><div class="ml">High</div><div class="mv" style="color:var(--green);" id="m-high">—</div></div>
+        <div class="mbox"><div class="ml">Low</div><div class="mv" style="color:var(--red);" id="m-low">—</div></div>
+        <div class="mbox"><div class="ml">Cierre ant.</div><div class="mv" id="m-close">—</div></div>
+        <div class="mbox"><div class="ml">VWAP</div><div class="mv" style="color:var(--amber);" id="m-vwap">—</div></div>
+        <div class="mbox"><div class="ml">Vol. Efectivo</div><div class="mv" id="m-vol">—</div></div>
+        <div class="mbox"><div class="ml">Vol. Nominal</div><div class="mv" id="m-nomvol">—</div></div>
+      </div>
+      <div style="padding:0 14px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">OPCIÓN SELECCIONADA</div>
+      <div id="mkt-opc" class="mktg" style="margin-top:0;"></div>
+    </div>
+
+    <!-- SMILE VI -->
+    <div id="tc-smile" class="tc">
+      <div style="padding:14px;">
+        <canvas id="cv-smile" height="230"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /derecha -->
+</div><!-- /main -->
+
+<div class="statusbar">
+  <div class="sdot" id="st-dot"></div>
+  <span id="st-txt">Conectando...</span>
+  <span style="margin-left:auto;" id="st-hora">—</span>
+  <span id="st-tlr">TLR: —</span>
+  <span id="st-dias">Vto: —</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOLUDiRTQtkZoW0a9Uesvibx3AHGKBLAtbCA65v2egQV3elg2-SNIXsk5l4E774eaPUduigSaS4C7A/pub?output=csv';
+const REFRESH = 30000; // ms
+
+// ════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════
+let tipo = 'C';
+let opciones = {};   // { strike: { call:{...}, put:{...} } }
+let mkt = { spot:0, var:'', open:0, high:0, low:0, close:0, vol:0, nomvol:0, vwap:0, dias:3, tlr:15.5 };
+let chartPayoff = null, chartSmile = null;
+
+// ════════════════════════════════════════════
+// CSV PARSER
+// ════════════════════════════════════════════
+function parseCSV(txt) {
+  const out = [];
+  let i = 0, n = txt.length;
+  while (i < n) {
+    const row = [];
+    while (i < n && txt[i] !== '\n' && txt[i] !== '\r') {
+      if (txt[i] === '"') {
+        let cell = ''; i++;
+        while (i < n) {
+          if (txt[i] === '"' && txt[i+1] === '"') { cell += '"'; i += 2; }
+          else if (txt[i] === '"') { i++; break; }
+          else cell += txt[i++];
+        }
+        row.push(cell);
+      } else {
+        let cell = '';
+        while (i < n && txt[i] !== ',' && txt[i] !== '\n' && txt[i] !== '\r') cell += txt[i++];
+        row.push(cell);
+      }
+      if (i < n && txt[i] === ',') i++;
+    }
+    while (i < n && (txt[i] === '\n' || txt[i] === '\r')) i++;
+    if (row.some(c => c.trim())) out.push(row);
+  }
+  return out;
+}
+
+// Número formato es-AR: "7.155,00"→7155  "352,000"→352  "57,52%"→57.52
+function N(s) {
+  if (!s && s !== 0) return null;
+  const st = s.toString().replace(/%/g,'').trim();
+  if (!st || st === '-' || st === '—') return null;
+  // Si tiene punto Y coma: "7.155,00" → punto=miles, coma=decimal
+  // Si solo tiene coma: "352,000" → coma=decimal
+  // Si solo tiene punto: "352.000" → ambiguo, asumir decimal
+  let clean;
+  if (st.includes('.') && st.includes(',')) {
+    clean = st.replace(/\./g,'').replace(',','.');
+  } else if (st.includes(',')) {
+    clean = st.replace(',','.');
+  } else {
+    clean = st;
+  }
+  const v = parseFloat(clean);
+  return isNaN(v) ? null : v;
+}
+
+// Formato visualización
+function F(n, d=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('es-AR', {minimumFractionDigits:d, maximumFractionDigits:d});
+}
+function FM(n) {
+  if (!n) return '—';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + F(n, 0);
+}
+
+// ════════════════════════════════════════════
+// FETCH Y PARSEO
+// ════════════════════════════════════════════
+async function cargarCSV() {
+  try {
+    const r = await fetch(CSV_URL + '&nocache=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const txt = await r.text();
+    procesarCSV(txt);
+    setStatus(true, '✓ Datos actualizados');
+  } catch(e) {
+    setStatus(false, '⚠ ' + e.message);
+    console.error(e);
+  }
+}
+
+function procesarCSV(txt) {
+  const rows = parseCSV(txt);
+  opciones = {};
+
+  for (const r of rows) {
+    if (!r || !r[0]) continue;
+    const sym   = r[0].trim();
+    // Metadatos: col[21]=label, col[22]=valor
+    const label = (r[21]||'').trim();
+    const val   = (r[22]||'').trim();
+
+    if (label === 'TLR')                   { const v=N(val); if(v!=null) mkt.tlr=v; }
+    if (label === 'Plazo al Vto. (días)')  { const v=parseInt(val); if(!isNaN(v)) mkt.dias=v; }
+
+    // Subyacente GGAL
+    if (sym === 'GGAL') {
+      mkt.spot   = N(r[7])  || mkt.spot;
+      mkt.var    = (r[8]||'').trim();
+      mkt.open   = N(r[12]) || 0;
+      mkt.high   = N(r[13]) || 0;
+      mkt.low    = N(r[14]) || 0;
+      mkt.close  = N(r[15]) || 0;
+      mkt.vol    = N(r[16]) || 0;
+      mkt.nomvol = N(r[17]) || 0;
+      mkt.vwap   = N(r[19]) || 0;
+    }
+
+    // Opciones GFGC / GFGV
+    const isC = sym.startsWith('GFGC');
+    const isP = sym.startsWith('GFGV');
+    if (!isC && !isP) continue;
+
+    const K = N(r[9]);
+    if (!K || K <= 0) continue;
+    if (!opciones[K]) opciones[K] = { call:null, put:null };
+
+    const o = {
+      ticker:  sym,
+      bidsize: N(r[1]),
+      bid:     N(r[2]),
+      bidVI:   N(r[3]),
+      askVI:   N(r[4]),
+      ask:     N(r[5]),
+      asksize: N(r[6]),
+      last:    N(r[7]),
+      chg:     (r[8]||'').trim(),
+      K:       K,
+      lastVI:  N(r[10]),
+      lastVE:  N(r[11]),
+      open:    N(r[12]),
+      high:    N(r[13]),
+      low:     N(r[14]),
+      close:   N(r[15]),
+      vol:     N(r[16]),
+      nomvol:  N(r[17]),
+      hora:    (r[18]||'').trim(),
+      vwap:    N(r[19]),
+    };
+    if (isC) opciones[K].call = o;
+    else     opciones[K].put  = o;
+  }
+
+  console.log(`✅ GGAL: ${mkt.spot} | Strikes: ${Object.keys(opciones).length} | Días: ${mkt.dias} | TLR: ${mkt.tlr}%`);
+  actualizarUI();
+  document.getElementById('loader').style.display = 'none';
+}
+
+// ════════════════════════════════════════════
+// UI PRINCIPAL
+// ════════════════════════════════════════════
+function actualizarUI() {
+  const S = mkt.spot;
+
+  // Header
+  document.getElementById('h-spot').textContent = F(S, 2);
+  const vn = N(mkt.var);
+  const varEl = document.getElementById('h-var');
+  varEl.textContent = vn != null ? (vn>=0?'+':'') + F(vn,2) + '%' : '—';
+  varEl.style.color = vn != null && vn >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('h-time').textContent = new Date().toLocaleTimeString('es-AR');
+
+  // Status
+  document.getElementById('st-tlr').textContent  = 'TLR: ' + mkt.tlr + '%';
+  document.getElementById('st-dias').textContent = 'Vto: ' + mkt.dias + 'd';
+  document.getElementById('st-hora').textContent = new Date().toLocaleTimeString('es-AR');
+
+  // Inputs por defecto (solo si están vacíos)
+  const inpS = document.getElementById('inp-s');
+  const inpD = document.getElementById('inp-d');
+  const inpR = document.getElementById('inp-r');
+  if (!inpS.value) inpS.value = S;
+  if (!inpD.value) inpD.value = mkt.dias;
+  if (!inpR.value) inpR.value = mkt.tlr;
+
+  // Mercado tab
+  document.getElementById('m-last').textContent  = F(S,2);
+  document.getElementById('m-var').textContent   = vn != null ? (vn>=0?'+':'')+F(vn,2)+'%' : '—';
+  document.getElementById('m-var').style.color   = vn&&vn>=0?'var(--green)':'var(--red)';
+  document.getElementById('m-open').textContent  = F(mkt.open,2);
+  document.getElementById('m-high').textContent  = F(mkt.high,2);
+  document.getElementById('m-low').textContent   = F(mkt.low,2);
+  document.getElementById('m-close').textContent = F(mkt.close,2);
+  document.getElementById('m-vwap').textContent  = F(mkt.vwap,2);
+  document.getElementById('m-vol').textContent   = FM(mkt.vol);
+  document.getElementById('m-nomvol').textContent= F(mkt.nomvol,0);
+
+  // Poblar selector de strikes
+  poblarStrikes(S);
+
+  // Renderizar plaza
+  renderPlaza(S);
+
+  // Calcular
+  calcular();
+}
+
+function poblarStrikes(S) {
+  const sel = document.getElementById('sel-k');
+  const prev = parseFloat(sel.value);
+  sel.innerHTML = '';
+
+  const ks = Object.keys(opciones).map(Number).sort((a,b)=>a-b);
+  const atm = ks.reduce((b,k) => Math.abs(k-S)<Math.abs(b-S)?k:b, ks[0]||0);
+
+  ks.forEach(K => {
+    const opt = document.createElement('option');
+    opt.value = K;
+    opt.textContent = F(K,2) + (K===atm ? ' ◄ ATM' : '');
+    if (K===atm) opt.style.color='var(--amber)';
+    sel.appendChild(opt);
+  });
+
+  sel.value = (prev && opciones[prev]) ? prev : atm;
+  onStrikeChange(false);
+}
+
+// ════════════════════════════════════════════
+// BLACK-SCHOLES
+// ════════════════════════════════════════════
+function normCDF(x) {
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429], p=0.3275911;
+  const s=x<0?-1:1; x=Math.abs(x)/Math.SQRT2;
+  const t=1/(1+p*x);
+  const y=1-((((a[4]*t+a[3])*t+a[2])*t+a[1])*t+a[0])*t*Math.exp(-x*x);
+  return 0.5*(1+s*y);
+}
+function normPDF(x){ return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI); }
+
+function bsD(S,K,T,r,σ){ return (Math.log(S/K)+(r+.5*σ*σ)*T)/(σ*Math.sqrt(T)); }
+
+function bsP(S,K,T,r,σ,t) {
+  if(T<=0||σ<=0||S<=0||K<=0) return 0;
+  const d1=bsD(S,K,T,r,σ), d2=d1-σ*Math.sqrt(T);
+  return t==='C' ? S*normCDF(d1)-K*Math.exp(-r*T)*normCDF(d2)
+                 : K*Math.exp(-r*T)*normCDF(-d2)-S*normCDF(-d1);
+}
+
+function bsG(S,K,T,r,σ,t) {
+  if(T<=0||σ<=0||S<=0||K<=0) return null;
+  const sq=Math.sqrt(T), d1=bsD(S,K,T,r,σ), d2=d1-σ*sq;
+  const pdf=normPDF(d1), eRT=Math.exp(-r*T), isC=t==='C';
+  return {
+    delta: isC ? normCDF(d1)  : normCDF(d1)-1,
+    gamma: pdf/(S*σ*sq),
+    theta: (isC ? -(S*pdf*σ)/(2*sq)-r*K*eRT*normCDF(d2)
+                : -(S*pdf*σ)/(2*sq)+r*K*eRT*normCDF(-d2))/365,
+    vega:  S*pdf*sq/100,
+    rho:   (isC ? K*T*eRT*normCDF(d2) : -K*T*eRT*normCDF(-d2))/100,
+    vanna: -pdf*d2/σ,
+  };
+}
+
+function implVI(precio, S, K, T, r, t) {
+  if (!precio||precio<=0||!S||!T) return null;
+  let lo=0.001, hi=10;
+  for(let i=0;i<120;i++){
+    const m=(lo+hi)/2;
+    bsP(S,K,T,r,m,t)>precio ? hi=m : lo=m;
+    if(hi-lo<0.00001) break;
+  }
+  return (lo+hi)/2*100;
+}
+
+// ════════════════════════════════════════════
+// CALCULAR
+// ════════════════════════════════════════════
+function calcular() {
+  const K  = parseFloat(document.getElementById('sel-k').value);
+  const S  = parseFloat(document.getElementById('inp-s').value);
+  const vi = parseFloat(document.getElementById('inp-vi').value)/100;
+  const d  = parseFloat(document.getElementById('inp-d').value);
+  const r  = Math.log(1 + parseFloat(document.getElementById('inp-r').value)/100);
+  const T  = d/365;
+
+  if (!K||!S||isNaN(vi)||!d) return;
+
+  const teo    = bsP(S,K,T,r,vi,tipo);
+  const greeks = bsG(S,K,T,r,vi,tipo);
+  const opc    = opciones[K] ? (tipo==='C'?opciones[K].call:opciones[K].put) : null;
+
+  // Precio teórico
+  const rEl = document.getElementById('r-teo');
+  rEl.textContent  = F(teo,3);
+  rEl.className    = 'rv ' + (tipo==='C'?'call':'put');
+
+  // VI implícita del last de mercado
+  if (opc && opc.last) {
+    const viImpl = implVI(opc.last, S, K, T, r, tipo);
+    document.getElementById('r-vi-impl').textContent =
+      viImpl ? `VI implícita del last: ${F(viImpl,2)}%` : 'VI implícita: —';
+  }
+
+  // Bid/Last/Ask de mercado
+  document.getElementById('r-bid').textContent  = opc ? F(opc.bid,3)  : '—';
+  document.getElementById('r-last').textContent = opc ? F(opc.last,3) : '—';
+  document.getElementById('r-ask').textContent  = opc ? F(opc.ask,3)  : '—';
+
+  // Val intrínseco / extrínseco / moneyness
+  const vint = tipo==='C' ? Math.max(S-K,0) : Math.max(K-S,0);
+  const vext = Math.max(teo-vint,0);
+  document.getElementById('r-vint').textContent = F(vint,3);
+  document.getElementById('r-vext').textContent = F(vext,3);
+  const mn = S/K;
+  const mnTxt = mn>1.015?'ITM':mn<0.985?'OTM':'ATM';
+  document.getElementById('r-money').textContent = F(mn,4)+' '+mnTxt;
+
+  // Griegas
+  if (greeks) {
+    document.getElementById('g-d').textContent  = F(greeks.delta,4);
+    document.getElementById('g-g').textContent  = F(greeks.gamma,6);
+    const theta = greeks.theta;
+    const tEl   = document.getElementById('g-t');
+    tEl.textContent   = F(theta,4);
+    tEl.style.color   = theta<0?'var(--red)':'var(--amber)';
+    document.getElementById('g-v').textContent  = F(greeks.vega,4);
+    document.getElementById('g-r').textContent  = F(greeks.rho,4);
+    document.getElementById('g-va').textContent = F(greeks.vanna,4);
+  }
+
+  // Tab activo: actualizar chart
+  const tabActivo = document.querySelector('.tc.on')?.id;
+  if (tabActivo==='tc-payoff')  renderPayoff(K,S,vi,T,r,tipo, opc?.last||teo);
+  if (tabActivo==='tc-sensi')   renderSensi(K,S,vi,T,r,tipo);
+  if (tabActivo==='tc-mkt')     renderMktOpc(opc);
+  if (tabActivo==='tc-smile')   renderSmile();
+}
+
+// ════════════════════════════════════════════
+// PLAZA
+// ════════════════════════════════════════════
+function renderPlaza(S) {
+  const ks  = Object.keys(opciones).map(Number).sort((a,b)=>a-b);
+  const atm = ks.reduce((b,k)=>Math.abs(k-S)<Math.abs(b-S)?k:b, ks[0]||0);
+  let html  = '';
+
+  ks.forEach(K => {
+    const c   = opciones[K].call;
+    const p   = opciones[K].put;
+    const isA = K===atm;
+    html += `<tr class="${isA?'atm':''}" onclick="selectK(${K})">
+      <td class="tc-str">${F(K,2)}${isA?'<span class="atm-tag">ATM</span>':''}</td>
+      <td class="tc-call">${F(c?.bid,3)}</td>
+      <td class="tc-call">${F(c?.last,3)}</td>
+      <td class="tc-call">${F(c?.ask,3)}</td>
+      <td class="tc-vi">${c?.lastVI!=null?F(c.lastVI,2)+'%':'—'}</td>
+      <td class="tc-ve">${c?.lastVE!=null?F(c.lastVE,1)+'%':'—'}</td>
+      <td class="tc-vol">${c?.nomvol!=null?F(c.nomvol,0):'—'}</td>
+      <td class="tc-put">${F(p?.bid,3)}</td>
+      <td class="tc-put">${F(p?.last,3)}</td>
+      <td class="tc-put">${F(p?.ask,3)}</td>
+      <td class="tc-vi">${p?.lastVI!=null?F(p.lastVI,2)+'%':'—'}</td>
+      <td class="tc-ve">${p?.lastVE!=null?F(p.lastVE,1)+'%':'—'}</td>
+      <td class="tc-vol">${p?.nomvol!=null?F(p.nomvol,0):'—'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('plaza-tbody').innerHTML = html;
+  setTimeout(()=>{ document.querySelector('tr.atm')?.scrollIntoView({block:'center',behavior:'smooth'}); },150);
+}
+
+function selectK(K) {
+  document.getElementById('sel-k').value = K;
+  onStrikeChange();
+  showTab('payoff', document.querySelectorAll('.tab')[1]);
+}
+
+// ════════════════════════════════════════════
+// PAYOFF
+// ════════════════════════════════════════════
+function renderPayoff(K, S, vi, T, r, t, prima) {
+  const ctx  = document.getElementById('cv-payoff').getContext('2d');
+  if (chartPayoff) chartPayoff.destroy();
+
+  const rng   = K * 0.3;
+  const steps = 80;
+  const xs=[], py=[], bsy=[];
+
+  for(let i=0;i<=steps;i++){
+    const s = K-rng + 2*rng/steps*i;
+    xs.push(F(s,0));
+    py.push( t==='C' ? Math.max(s-K,0)-prima : Math.max(K-s,0)-prima );
+    bsy.push( bsP(s,K,T,r,vi,t)-prima );
+  }
+
+  const be = t==='C' ? K+prima : K-prima;
+  document.getElementById('p-be').textContent = F(be,2);
+  document.getElementById('p-mg').textContent = t==='C' ? '∞' : F(K-prima,2);
+  document.getElementById('p-ml').textContent = F(-prima,3);
+  const maxG = t==='P' ? K-prima : prima*8;
+  document.getElementById('p-rr').textContent = maxG>0 ? F(maxG/prima,2)+'x' : '—';
+
+  chartPayoff = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:xs,
+      datasets:[
+        {label:'Al vencimiento',data:py,borderColor:t==='C'?'#00ff88':'#ff4466',borderWidth:2,pointRadius:0,tension:0,fill:false},
+        {label:'Valor actual (BS)',data:bsy,borderColor:'#00d4ff',borderWidth:2,pointRadius:0,tension:.3,borderDash:[4,4],fill:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:250},
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'JetBrains Mono',size:10},boxWidth:18}},
+        tooltip:{backgroundColor:'#0d1117',titleColor:'#e2e8f0',bodyColor:'#64748b',borderColor:'#1e2d3d',borderWidth:1,
+          callbacks:{label:c=>' '+F(c.parsed.y,2)}}
+      },
+      scales:{
+        x:{ticks:{color:'#4a6080',maxTicksLimit:8,font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(30,45,61,.4)'}},
+        y:{ticks:{color:'#4a6080',font:{family:'JetBrains Mono',size:9},callback:v=>F(v,0)},grid:{color:'rgba(30,45,61,.4)'}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════
+// SENSIBILIDAD
+// ════════════════════════════════════════════
+function renderSensi(K, S, vi, T, r, t) {
+  const base = bsP(S,K,T,r,vi,t);
+
+  const spotVars = [
+    {l:'Spot +5%',  s:S*1.05}, {l:'Spot -5%',  s:S*0.95},
+    {l:'Spot +10%', s:S*1.10}, {l:'Spot -10%', s:S*0.90},
+    {l:'Spot +15%', s:S*1.15}, {l:'Spot -15%', s:S*0.85},
+  ];
+  const viVars = [
+    {l:'VI +5pp',  v:vi+.05}, {l:'VI -5pp',  v:Math.max(.01,vi-.05)},
+    {l:'VI +10pp', v:vi+.10}, {l:'VI -10pp', v:Math.max(.01,vi-.10)},
+    {l:'VI +20pp', v:vi+.20}, {l:'VI -20pp', v:Math.max(.01,vi-.20)},
+  ];
+
+  const mkRows = (vars, fn, elId) => {
+    document.getElementById(elId).innerHTML = vars.map(v=>{
+      const val=fn(v); const d=val-base;
+      const col=d>=0?'var(--green)':'var(--red)';
+      return `<div class="sr">
+        <span class="sk">${v.l}</span>
+        <div style="text-align:right">
+          <div style="font-weight:700">${F(val,3)}</div>
+          <div style="font-size:10px;color:${col}">${d>=0?'+':''}${F(d,3)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  mkRows(spotVars, v=>bsP(v.s,K,T,r,vi,t), 'sensi-spot');
+  mkRows(viVars,   v=>bsP(S,K,T,r,v.v,t),  'sensi-vi');
+
+  // Matriz
+  const pcts = [-15,-10,-5,0,+5,+10,+15];
+  document.getElementById('sensi-mat').innerHTML = pcts.map(pct=>{
+    const s2=S*(1+pct/100);
+    return `<tr>
+      <td style="color:var(--muted2);font-size:11px;">${pct>=0?'+':''}${pct}% (${F(s2,0)})</td>
+      ${[1,2,3,5,7,10].map(d=>{
+        const t2=Math.max(.0003,d/365);
+        const v=bsP(s2,K,t2,r,vi,t);
+        const diff=v-base;
+        const col=diff>0?'var(--green)':diff<0?'var(--red)':'var(--muted)';
+        return `<td style="color:${col};font-size:11px;">${F(v,2)}</td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// MERCADO OPCIÓN
+// ════════════════════════════════════════════
+function renderMktOpc(opc) {
+  if (!opc) { document.getElementById('mkt-opc').innerHTML=''; return; }
+  document.getElementById('mkt-opc').innerHTML = [
+    ['Ticker', opc.ticker],
+    ['Open',   F(opc.open,3)],
+    ['High',   F(opc.high,3)],
+    ['Low',    F(opc.low,3)],
+    ['Cierre', F(opc.close,3)],
+    ['VWAP',   F(opc.vwap,3)],
+    ['Vol $',  FM(opc.vol)],
+    ['Nom.',   F(opc.nomvol,0)],
+    ['Hora',   opc.hora||'—'],
+  ].map(([l,v])=>`<div class="mbox"><div class="ml">${l}</div><div class="mv" style="font-size:12px;">${v}</div></div>`).join('');
+}
+
+// ════════════════════════════════════════════
+// SMILE VI
+// ════════════════════════════════════════════
+function renderSmile() {
+  const ctx = document.getElementById('cv-smile').getContext('2d');
+  if (chartSmile) chartSmile.destroy();
+
+  const S  = mkt.spot;
+  const T  = mkt.dias/365;
+  const r  = Math.log(1+mkt.tlr/100);
+  const ks = Object.keys(opciones).map(Number).sort((a,b)=>a-b);
+
+  const xs=[], cVI=[], pVI=[];
+  ks.forEach(K=>{
+    const c=opciones[K].call, p=opciones[K].put;
+    xs.push(((K/S-1)*100).toFixed(1)+'%');
+    // Usar lastVI del CSV (ya es %)
+    cVI.push(c?.lastVI && c.lastVI>0 ? c.lastVI : null);
+    pVI.push(p?.lastVI && p.lastVI>0 ? p.lastVI : null);
+  });
+
+  chartSmile = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:xs,
+      datasets:[
+        {label:'VI Calls',data:cVI,borderColor:'#00ff88',borderWidth:2,pointRadius:3,pointBackgroundColor:'#00ff88',tension:.4,spanGaps:true},
+        {label:'VI Puts', data:pVI,borderColor:'#ff4466',borderWidth:2,pointRadius:3,pointBackgroundColor:'#ff4466',tension:.4,spanGaps:true}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:350},
+      plugins:{
+        legend:{labels:{color:'#64748b',font:{family:'JetBrains Mono',size:10},boxWidth:18}},
+        tooltip:{backgroundColor:'#0d1117',titleColor:'#e2e8f0',bodyColor:'#64748b',borderColor:'#1e2d3d',borderWidth:1,
+          callbacks:{label:c=>' '+F(c.parsed.y,2)+'%'}}
+      },
+      scales:{
+        x:{ticks:{color:'#4a6080',font:{family:'JetBrains Mono',size:9},maxTicksLimit:14},grid:{color:'rgba(30,45,61,.4)'}},
+        y:{ticks:{color:'#4a6080',font:{family:'JetBrains Mono',size:9},callback:v=>v+'%'},grid:{color:'rgba(30,45,61,.4)'}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════
+// CONTROLES
+// ════════════════════════════════════════════
+function setTipo(t) {
+  tipo = t;
+  document.getElementById('btn-c').className = 'tbtn call' + (t==='C'?' on':'');
+  document.getElementById('btn-p').className = 'tbtn put'  + (t==='P'?' on':'');
+  onStrikeChange();
+}
+
+function onStrikeChange(doCalc=true) {
+  const K   = parseFloat(document.getElementById('sel-k').value);
+  const opc = opciones[K] ? (tipo==='C'?opciones[K].call:opciones[K].put) : null;
+  if (!opc) return;
+
+  // Setear VI del CSV
+  if (opc.lastVI && opc.lastVI>0)
+    document.getElementById('inp-vi').value = F(opc.lastVI,2);
+
+  // Precio por defecto = last
+  fillP('last', false);
+  if (doCalc) calcular();
+}
+
+function fillP(tipo_p, recalc=true) {
+  const K   = parseFloat(document.getElementById('sel-k').value);
+  const opc = opciones[K] ? (tipo==='C'?opciones[K].call:opciones[K].put) : null;
+  if (!opc) return;
+
+  const val = tipo_p==='bid' ? opc.bid : tipo_p==='ask' ? opc.ask : opc.last;
+  if (val != null) document.getElementById('inp-p').value = val;
+
+  // Recalcular VI implícita del precio elegido
+  const S=parseFloat(document.getElementById('inp-s').value)||mkt.spot;
+  const d=parseFloat(document.getElementById('inp-d').value)||mkt.dias;
+  const r=Math.log(1+(parseFloat(document.getElementById('inp-r').value)||mkt.tlr)/100);
+  const T=d/365;
+  if (val && val>0 && K && S && T) {
+    const vi=implVI(val,S,K,T,r,tipo);
+    if (vi && vi>0) document.getElementById('inp-vi').value=F(vi,2);
+  }
+
+  // Highlight
+  ['bid','last','ask'].forEach(tp=>{
+    document.getElementById('fb-'+tp).classList.toggle('on', tp===tipo_p);
+  });
+
+  if (recalc) calcular();
+}
+
+function onPrecioChange() {
+  const K  = parseFloat(document.getElementById('sel-k').value);
+  const S  = parseFloat(document.getElementById('inp-s').value)||mkt.spot;
+  const d  = parseFloat(document.getElementById('inp-d').value)||mkt.dias;
+  const r  = Math.log(1+(parseFloat(document.getElementById('inp-r').value)||mkt.tlr)/100);
+  const T  = d/365;
+  const pr = parseFloat(document.getElementById('inp-p').value);
+  if (pr>0&&K&&S&&T) {
+    const vi=implVI(pr,S,K,T,r,tipo);
+    if (vi&&vi>0) document.getElementById('inp-vi').value=F(vi,2);
+  }
+  calcular();
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tc-'+id).classList.add('on');
+  el.classList.add('on');
+  // Renderizar charts al activar
+  const K  = parseFloat(document.getElementById('sel-k').value);
+  const S  = parseFloat(document.getElementById('inp-s').value)||mkt.spot;
+  const vi = parseFloat(document.getElementById('inp-vi').value)/100;
+  const d  = parseFloat(document.getElementById('inp-d').value)||mkt.dias;
+  const r  = Math.log(1+(parseFloat(document.getElementById('inp-r').value)||mkt.tlr)/100);
+  const T  = d/365;
+  if (id==='payoff') renderPayoff(K,S,vi,T,r,tipo,parseFloat(document.getElementById('inp-p').value)||bsP(S,K,T,r,vi,tipo));
+  if (id==='sensi')  renderSensi(K,S,vi,T,r,tipo);
+  if (id==='mkt')    renderMktOpc(opciones[K]?(tipo==='C'?opciones[K].call:opciones[K].put):null);
+  if (id==='smile')  renderSmile();
+}
+
+function setStatus(ok, msg) {
+  document.getElementById('st-dot').className = 'sdot' + (ok?'':' err');
+  document.getElementById('st-txt').textContent = msg;
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+cargarCSV();
+setInterval(cargarCSV, REFRESH);
+</script>
+</body>
+</html>
