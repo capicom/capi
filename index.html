@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Opciones GGAL - Capi</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b0f; --bg2: #0d1117; --bg3: #131a22; --border: #1e2d3d;
+  --text: #e2e8f0; --accent: #00d4ff; --green: #00ff88; --red: #ff4466;
+}
+body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; padding: 20px; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; max-width: 900px; margin: auto; }
+h1 { font-family: 'Syne', sans-serif; color: var(--accent); margin-bottom: 20px; text-align: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+.input-group { display: flex; flex-direction: column; gap: 5px; }
+input, select { background: var(--bg3); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; outline: none; }
+#status { margin-top: 15px; font-size: 12px; color: #4a6080; text-align: center; }
+.data-display { margin-top: 20px; padding: 15px; background: #1a2332; border-radius: 8px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>CAPITAL OPERATOR - GGAL</h1>
+  
+  <div class="grid">
+    <div class="input-group">
+      <label>Subyacente (GGAL):</label>
+      <input type="number" id="inp-s" step="0.01" placeholder="Cargando...">
+    </div>
+    <div class="input-group">
+      <label>Seleccionar Strike:</label>
+      <select id="sel-k" onchange="seleccionarOpcion()">
+        <option value="">Esperando datos...</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="data-display" class="data-display">
+    <div class="grid">
+      <div>Símbolo: <span id="out-sym" style="color:var(--accent)">-</span></div>
+      <div>Strike: <span id="out-strike">-</span></div>
+      <div>Compra (Bid): <span id="out-bid" style="color:var(--green)">-</span></div>
+      <div>Venta (Ask): <span id="out-ask" style="color:var(--red)">-</span></div>
+    </div>
+  </div>
+
+  <div id="status">Iniciando conexión con Google Sheets...</div>
+</div>
+
+<script>
+// --- CONFIGURACIÓN DE DATOS ---
+const sheetId = 'e/2PACX-1vTOLUDiRTQtkZoW0a9Uesvibx3AHGKBLAtbCA65v2egQV3elg2-SNIXsk5l4E774eaPUduigSaS4C7A';
+const urlCsv = `https://docs.google.com/spreadsheets/d/${sheetId}/pub?output=csv`;
+const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlCsv);
+
+let marketRows = [];
+
+async function fetchMarketData() {
+    const statusEl = document.getElementById('status');
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Error en la red');
+        const csvText = await response.text();
+        
+        // Procesar filas y saltar encabezados de metadatos (fila 1 y 2)
+        const rows = csvText.split('\n').map(row => row.split(',')).slice(2);
+        
+        // 1. Cargar Spot GGAL
+        const ggalRow = rows.find(r => r[0] === 'GGAL');
+        if (ggalRow) {
+            document.getElementById('inp-s').value = parseArgNumber(ggalRow[7]); // Columna 'last'
+        }
+
+        // 2. Filtrar y cargar Opciones
+        marketRows = rows.filter(r => r[0] && (r[0].startsWith('GFGC') || r[0].startsWith('GFGV')))
+            .map(r => ({
+                symbol: r[0],
+                bid: parseArgNumber(r[2]),
+                ask: parseArgNumber(r[5]),
+                strike: parseArgNumber(r[9])
+            }));
+
+        actualizarSelectores(marketRows);
+        statusEl.innerText = "Sincronizado: " + new Date().toLocaleTimeString();
+    } catch (error) {
+        console.error(error);
+        statusEl.innerText = "Error de conexión. Usa Live Server o GitHub Pages.";
+        statusEl.style.color = "var(--red)";
+    }
+}
+
+function parseArgNumber(text) {
+    if (!text) return 0;
+    // Limpieza de formato argentino: quita comillas, puntos de miles y cambia coma por punto
+    const clean = text.replace(/"/g, '').trim().replace(/\./g, '').replace(',', '.');
+    return parseFloat(clean) || 0;
+}
+
+function actualizarSelectores(strikes) {
+    const select = document.getElementById('sel-k');
+    select.innerHTML = '<option value="">-- Seleccionar Base --</option>';
+    strikes.forEach((opt, index) => {
+        const el = document.createElement('option');
+        el.value = index;
+        el.textContent = `${opt.symbol} (K: ${opt.strike})`;
+        select.appendChild(el);
+    });
+}
+
+function seleccionarOpcion() {
+    const idx = document.getElementById('sel-k').value;
+    const display = document.getElementById('data-display');
+    if (idx === "") {
+        display.style.display = 'none';
+        return;
+    }
+    
+    const opt = marketRows[idx];
+    display.style.display = 'block';
+    document.getElementById('out-sym').innerText = opt.symbol;
+    document.getElementById('out-strike').innerText = opt.strike.toLocaleString('es-AR');
+    document.getElementById('out-bid').innerText = opt.bid.toLocaleString('es-AR');
+    document.getElementById('out-ask').innerText = opt.ask.toLocaleString('es-AR');
+    
+    // Aquí puedes disparar tu función de calcular() de Black-Scholes si la tienes
+}
+
+// Ejecución automática
+window.onload = fetchMarketData;
+// Refresco automático cada 30 segundos
+setInterval(fetchMarketData, 30000);
+
+</script>
+</body>
+</html>
